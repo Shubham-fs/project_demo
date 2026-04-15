@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import sys
 
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
 import seaborn as sns
 import streamlit as st
 from data_validation import format_validation_messages, validate_dataset
@@ -27,8 +30,307 @@ MODELS_DIR = "models"
 
 st.set_page_config(
     page_title="Knowledge Gate Conversion Intelligence",
-    page_icon=None,
+    page_icon="🎓",
     layout="wide",
+)
+
+st.markdown("""
+<style>
+/* Dark Dashboard background */
+.stApp {
+    background-color: #0f172a;
+    background-image: radial-gradient(circle at top right, #1e1b4b 0%, #0f172a 60%);
+    font-family: 'Inter', sans-serif;
+    color: #f8fafc;
+}
+
+/* Global text overrides inside Streamlit */
+.stMarkdown p, .stMarkdown label, .stMarkdown span {
+    color: #cbd5e1 !important;
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: #020617 !important;
+    border-right: 1px solid #1e293b !important;
+}
+[data-testid="stSidebarNav"] * {
+    color: #cbd5e1 !important;
+}
+
+/* Typography headers with Neon Gradient */
+h1 {
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900 !important;
+    letter-spacing: -0.025em !important;
+    margin-bottom: 24px !important;
+    text-shadow: 0px 4px 15px rgba(129, 140, 248, 0.2);
+}
+h2 {
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+h3 {
+    color: #e2e8f0 !important;
+    font-weight: 700 !important;
+}
+
+/* Styled metric cards with Electric Colors */
+[data-testid="stMetricValue"] {
+    font-size: 2.5rem !important;
+    font-weight: 900 !important;
+    background: linear-gradient(90deg, #2dd4bf, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+[data-testid="stMetricLabel"] {
+    font-size: 0.95rem !important;
+    color: #94a3b8 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Metric container shadow, glow, and borders */
+[data-testid="metric-container"] {
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(12px);
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid #334155;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-testid="metric-container"]:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+}
+
+/* Glowing Button styling */
+div.stButton > button {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 1.2rem !important;
+    font-weight: 800 !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
+    transition: all 0.3s !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+div.stButton > button:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6) !important;
+    transform: translateY(-2px);
+}
+
+/* Tabs styling */
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    padding: 0.5rem 1rem !important;
+}
+.stTabs [aria-selected="true"] {
+    color: #38bdf8 !important;
+    border-bottom: 3px solid #38bdf8 !important;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+}
+
+/* Dataframe padding & dark mode */
+.stDataFrame {
+    padding: 1rem;
+    background: #0f172a;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid #1e293b;
+}
+
+/* Inputs and interactive elements */
+div[data-baseweb="select"] > div {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+input {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+/* ── KEYFRAME ANIMATIONS ───────────────────────────────────── */
+
+/* 1. Page content fade-up entrance */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.main .block-container {
+    animation: fadeInUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 2. Pulsing neon glow on metric cards */
+@keyframes pulseGlow {
+    0%   { box-shadow: 0 4px 15px rgba(56,189,248,0.12); }
+    50%  { box-shadow: 0 4px 30px rgba(56,189,248,0.4), 0 0 20px rgba(168,85,247,0.15); }
+    100% { box-shadow: 0 4px 15px rgba(56,189,248,0.12); }
+}
+[data-testid="metric-container"] {
+    animation: pulseGlow 3.5s ease-in-out infinite;
+}
+
+/* 3. Shimmer sweep on h1 gradient */
+@keyframes shimmer {
+    0%   { background-position: -300% center; }
+    100% { background-position: 300% center; }
+}
+h1 {
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc, #38bdf8, #818cf8);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 5s linear infinite;
+    font-weight: 900 !important;
+    letter-spacing: -0.025em !important;
+    margin-bottom: 24px !important;
+}
+
+/* 4. Active tab neon glow pulse */
+@keyframes tabGlow {
+    0%,100% { text-shadow: 0 0 6px rgba(56,189,248,0.4); }
+    50%     { text-shadow: 0 0 22px rgba(56,189,248,1); }
+}
+.stTabs [aria-selected="true"] {
+    color: #38bdf8 !important;
+    border-bottom: 3px solid #38bdf8 !important;
+    animation: tabGlow 2.5s ease-in-out infinite;
+}
+
+/* 5. Button ripple ring on hover */
+@keyframes buttonRing {
+    0%   { box-shadow: 0 4px 15px rgba(168,85,247,0.4), 0 0 0 0 rgba(168,85,247,0.55); }
+    70%  { box-shadow: 0 4px 15px rgba(168,85,247,0.4), 0 0 0 12px rgba(168,85,247,0); }
+    100% { box-shadow: 0 4px 15px rgba(168,85,247,0.4), 0 0 0 0 rgba(168,85,247,0); }
+}
+div.stButton > button:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;
+    animation: buttonRing 1s ease-out infinite !important;
+    transform: translateY(-2px);
+}
+
+/* 6. Sidebar slide-in from left */
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-22px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+[data-testid="stSidebar"] > div:first-child {
+    animation: slideInLeft 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 7. Floating logo bounce in sidebar */
+@keyframes floatY {
+    0%,100% { transform: translateY(0px); }
+    50%     { transform: translateY(-6px); }
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"]:first-child div {
+    animation: floatY 4s ease-in-out infinite;
+}
+
+/* 8. Dataframe row hover */
+.stDataFrame tr:hover td {
+    background: rgba(56,189,248,0.07) !important;
+    transition: background 0.2s ease;
+}
+
+/* 9. Spinner pulse */
+@keyframes spinnerPulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.5; transform: scale(0.95); }
+}
+.stSpinner > div { animation: spinnerPulse 1.2s ease-in-out infinite !important; }
+</style>
+""", unsafe_allow_html=True)
+
+def premium_metric_card(label, value, icon="⚡", color_start="#2dd4bf", color_end="#3b82f6"):
+    return f"""
+    <div style="background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #334155; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); text-align: left; transition: all 0.3s ease-in-out;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <p style="color: #94a3b8; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 0; font-family: 'Inter', sans-serif;">{label}</p>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px;">{icon}</div>
+        </div>
+        <p style="background: linear-gradient(90deg, {color_start}, {color_end}); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 36px; font-weight: 900; font-family: 'Inter', sans-serif; margin: 0;">{value}</p>
+    </div>
+    """
+
+# ── Chart theme constants ────────────────────────────────────────────────────
+_BG       = "#0d1117"
+_PANEL    = "#0f1923"
+_GRID_C   = "#1a2535"
+_TEXT_PRI = "#e2e8f0"
+_TEXT_SEC = "#4b6080"
+_CYAN     = "#22d3ee"
+_PURPLE   = "#a78bfa"
+_GREEN    = "#34d399"
+_AMBER    = "#fbbf24"
+_ROSE     = "#fb7185"
+
+def dark_chart_style(fig, axes=None):
+    """Apply a premium neon-dark Matplotlib theme."""
+    fig.patch.set_facecolor(_BG)
+    targets = axes if axes else fig.axes
+    for ax in targets:
+        ax.set_facecolor(_PANEL)
+        ax.tick_params(colors=_TEXT_SEC, labelsize=9)
+        ax.xaxis.label.set_color(_TEXT_SEC)
+        ax.yaxis.label.set_color(_TEXT_SEC)
+        ax.title.set_color(_TEXT_PRI)
+        ax.title.set_fontweight("bold")
+        ax.title.set_fontsize(12)
+        for spine in ax.spines.values():
+            spine.set_edgecolor(_GRID_C)
+        ax.grid(color=_GRID_C, linestyle="--", linewidth=0.5, alpha=0.8)
+        ax.set_axisbelow(True)
+        legend = ax.get_legend()
+        if legend:
+            legend.get_frame().set_facecolor("#1e293b")
+            legend.get_frame().set_edgecolor(_GRID_C)
+            for text in legend.get_texts():
+                text.set_color(_TEXT_PRI)
+    fig.tight_layout()
+    return fig
+
+# ── Shared Plotly dark layout ────────────────────────────────────────────────
+PLOTLY_LAYOUT = dict(
+    paper_bgcolor=_BG,
+    plot_bgcolor=_PANEL,
+    font=dict(color=_TEXT_PRI, family="Inter, sans-serif", size=12),
+    title_font=dict(color=_TEXT_PRI, size=14, family="Inter, sans-serif"),
+    legend=dict(
+        bgcolor="rgba(15,25,35,0.9)",
+        bordercolor=_GRID_C, borderwidth=1,
+        font=dict(color=_TEXT_PRI, size=11),
+    ),
+    xaxis=dict(
+        gridcolor=_GRID_C, gridwidth=0.5,
+        tickcolor=_TEXT_SEC, tickfont=dict(color=_TEXT_SEC, size=10),
+        linecolor=_GRID_C, zerolinecolor=_GRID_C,
+    ),
+    yaxis=dict(
+        gridcolor=_GRID_C, gridwidth=0.5,
+        tickcolor=_TEXT_SEC, tickfont=dict(color=_TEXT_SEC, size=10),
+        linecolor=_GRID_C, zerolinecolor=_GRID_C,
+    ),
+    hoverlabel=dict(
+        bgcolor="#1e293b",
+        bordercolor=_CYAN,
+        font=dict(color=_TEXT_PRI, size=12),
+    ),
+    margin=dict(l=40, r=20, t=50, b=40),
 )
 
 
@@ -44,6 +346,19 @@ def load_artifacts():
 @st.cache_data
 def load_data():
     return pd.read_csv(DATA_PATH)
+
+
+def format_model_load_error(exc: Exception) -> str:
+    if isinstance(exc, ModuleNotFoundError) and exc.name == "xgboost":
+        return (
+            "Model artifacts were found, but this Streamlit environment cannot import "
+            "`xgboost`.\n\n"
+            f"Current Python: `{sys.executable}`\n\n"
+            "Start the app with the same interpreter you used for training:\n"
+            "`python -m streamlit run app.py`\n\n"
+            "Or install `xgboost` into the environment that provides the `streamlit` command."
+        )
+    return f"Model not available. Run `python train.py` first.\n\n{exc}"
 
 
 def build_model_inputs(df: pd.DataFrame, config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -192,20 +507,41 @@ def make_decile_table(y_true: pd.Series | np.ndarray, scores: np.ndarray) -> pd.
     return pd.DataFrame(rows)
 
 
-st.sidebar.title("Knowledge Gate")
-st.sidebar.caption("Conversion Intelligence Dashboard")
+with st.sidebar:
+    st.markdown("""
+    <div style="text-align:center; padding: 8px 0 20px 0;">
+        <div style="
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 50%; width: 56px; height: 56px;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+            margin-bottom: 12px; font-size: 26px;
+        ">🎓</div>
+        <div style="
+            font-size: 18px; font-weight: 900;
+            background: linear-gradient(90deg, #38bdf8, #a855f7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px; line-height: 1.2;
+        ">Knowledge Gate</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;">Intelligence Suite</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<div style='border-top: 1px solid #1e293b; margin-bottom: 16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:11px; color:#475569; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; padding: 0 8px;'>Navigation</p>", unsafe_allow_html=True)
 
 page = st.sidebar.radio(
-    "Navigate",
+    "Navigation",
     [
         "Overview",
         "Model Performance",
         "Evaluation Report",
         "Daily Sales Sheet",
         "Student Explorer",
+        "Live Predictor",
         "New Data Upload",
     ],
     index=0,
+    label_visibility="collapsed"
 )
 
 try:
@@ -231,22 +567,51 @@ try:
     model_loaded = True
 except Exception as exc:
     model_loaded = False
-    st.sidebar.error(f"Model not available. Run python train.py first.\n\n{exc}")
+    st.sidebar.error(format_model_load_error(exc))
 
 if model_loaded:
     metrics = config.get("test_metrics", {})
-    st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Model version:** `{config.get('model_version', 'N/A')}`")
-    st.sidebar.markdown(f"**Holdout ROC-AUC:** `{metrics.get('roc_auc', config.get('test_roc_auc', 0.0)):.4f}`")
-    st.sidebar.markdown(f"**Holdout AP:** `{metrics.get('average_precision', config.get('average_precision', 0.0)):.4f}`")
-    st.sidebar.markdown(f"**High-confidence threshold:** `{high_threshold:.2f}`")
-    st.sidebar.markdown(f"**Outreach threshold:** `{outreach_threshold:.2f}`")
+    roc_val = metrics.get('roc_auc', config.get('test_roc_auc', 0.0))
+    ap_val = metrics.get('average_precision', config.get('average_precision', 0.0))
+    st.sidebar.markdown(f"""
+    <div style="margin: 8px 0 4px 0; padding: 14px 16px; background: rgba(30,41,59,0.7); border-radius: 12px; border: 1px solid #1e293b;">
+        <div style="font-size:10px; color:#475569; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">Model Health</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:12px; color:#94a3b8;">ROC-AUC</span>
+            <span style="font-size:13px; font-weight:800; color:#38bdf8;">{roc_val:.4f}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:12px; color:#94a3b8;">Avg Precision</span>
+            <span style="font-size:13px; font-weight:800; color:#a855f7;">{ap_val:.4f}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:12px; color:#94a3b8;">HIGH Threshold</span>
+            <span style="font-size:13px; font-weight:800; color:#10b981;">{high_threshold:.2f}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:12px; color:#94a3b8;">MID Threshold</span>
+            <span style="font-size:13px; font-weight:800; color:#f59e0b;">{outreach_threshold:.2f}</span>
+        </div>
+    </div>
+    <div style="margin: 10px 0 4px 0; padding: 12px 16px; background: rgba(30,41,59,0.7); border-radius: 12px; border: 1px solid #1e293b;">
+        <div style="font-size:10px; color:#475569; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px;">Tier Legend</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:14px;">🔥</span><span style="font-size:12px; color:#10b981; font-weight:700;">HIGH</span><span style="font-size:11px; color:#64748b; margin-left:auto;">Top prospects</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:14px;">⚡</span><span style="font-size:12px; color:#f59e0b; font-weight:700;">MID</span><span style="font-size:11px; color:#64748b; margin-left:auto;">Outreach ready</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:14px;">🧊</span><span style="font-size:12px; color:#3b82f6; font-weight:700;">LOW</span><span style="font-size:11px; color:#64748b; margin-left:auto;">Nurture only</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     if data_validation.warnings:
         st.sidebar.warning(format_validation_messages(data_validation.warnings))
 
 if page == "Overview":
-    st.title("Knowledge Gate Conversion Intelligence")
-    st.markdown("Calibrated purchase-probability model for sales prioritization.")
+    st.markdown("<h1>Knowledge Gate Conversion Intelligence</h1>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     if not model_loaded:
         st.stop()
@@ -259,70 +624,82 @@ if page == "Overview":
     outreach_summary = config.get("test_outreach_threshold_summary", {})
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("HIGH leads", f"{high_count:,}")
-    col2.metric("MID leads", f"{mid_count:,}")
-    col3.metric("LOW leads", f"{low_count:,}")
-    col4.metric("Top 10% Lift", f"{config.get('top10_lift', 0.0):.2f}x")
+    with col1:
+        st.markdown(premium_metric_card("HIGH leads", f"{high_count:,}", "🔥", "#10b981", "#34d399"), unsafe_allow_html=True)
+    with col2:
+        st.markdown(premium_metric_card("MID leads", f"{mid_count:,}", "⚡", "#f59e0b", "#fbbf24"), unsafe_allow_html=True)
+    with col3:
+        st.markdown(premium_metric_card("LOW leads", f"{low_count:,}", "🧊", "#3b82f6", "#60a5fa"), unsafe_allow_html=True)
+    with col4:
+        st.markdown(premium_metric_card("Top 10% Lift", f"{config.get('top10_lift', 0.0):.2f}x", "📈", "#8b5cf6", "#c084fc"), unsafe_allow_html=True)
 
-    st.caption(
-        "HIGH = strongest prospects, MID = outreach-ready prospects, LOW = nurture."
-    )
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
-        fig, ax = plt.subplots(figsize=(5, 4))
-        ax.pie(
-            [high_count, mid_count, low_count],
+        fig_pie = go.Figure(go.Pie(
             labels=["HIGH", "MID", "LOW"],
-            colors=["#c0392b", "#f39c12", "#2980b9"],
-            autopct="%1.1f%%",
-            startangle=140,
+            values=[high_count, mid_count, low_count],
+            marker=dict(
+                colors=[_GREEN, _AMBER, _CYAN],
+                line=dict(color=_BG, width=3),
+            ),
+            hole=0.45,
+            textfont=dict(color=_BG, size=13),
+            hovertemplate="<b>%{label}</b><br>Count: %{value:,}<br>Share: %{percent}<extra></extra>",
+        ))
+        fig_pie.update_layout(
+            **PLOTLY_LAYOUT,
+            title="Students by Lead Tier",
+            showlegend=True,
+            transition={"duration": 800, "easing": "cubic-in-out"},
+            annotations=[dict(text="Tiers", x=0.5, y=0.5, font_size=13, showarrow=False,
+                              font_color=_TEXT_PRI)],
         )
-        ax.set_title("Students by lead tier")
-        st.pyplot(fig)
-        plt.close(fig)
+        fig_pie.update_traces(rotation=90, pull=[0.05, 0.03, 0.02])
+        st.plotly_chart(fig_pie, use_container_width=True)
 
     with col_b:
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.hist(
-            all_scores[df[TARGET_COLUMN] == 0],
-            bins=40,
-            alpha=0.6,
-            color="steelblue",
-            density=True,
-            label="Non-buyer",
-        )
-        ax.hist(
-            all_scores[df[TARGET_COLUMN] == 1],
-            bins=40,
-            alpha=0.6,
-            color="tomato",
-            density=True,
-            label="Buyer",
-        )
-        ax.axvline(high_threshold, color="red", linestyle="--", label=f"HIGH ({high_threshold:.2f})")
-        ax.axvline(
-            outreach_threshold,
-            color="orange",
-            linestyle="--",
-            label=f"MID ({outreach_threshold:.2f})",
-        )
-        ax.set_xlabel("Predicted purchase probability")
-        ax.set_ylabel("Density")
-        ax.legend(fontsize=8)
-        ax.set_title("Score separation")
-        st.pyplot(fig)
-        plt.close(fig)
+        non_buyer_scores = all_scores[df[TARGET_COLUMN] == 0]
+        buyer_scores = all_scores[df[TARGET_COLUMN] == 1]
+        fig_hist = go.Figure()
+        fig_hist.add_trace(go.Histogram(
+            x=non_buyer_scores, nbinsx=40, name="Non-buyer",
+            marker_color=_CYAN, opacity=0.55, histnorm="density",
+            hovertemplate="Prob: %{x:.2f}<br>Density: %{y:.3f}<extra>Non-buyer</extra>",
+        ))
+        fig_hist.add_trace(go.Histogram(
+            x=buyer_scores, nbinsx=40, name="Buyer",
+            marker_color=_ROSE, opacity=0.55, histnorm="density",
+            hovertemplate="Prob: %{x:.2f}<br>Density: %{y:.3f}<extra>Buyer</extra>",
+        ))
+        fig_hist.add_vline(x=high_threshold, line=dict(color=_ROSE, dash="dash", width=2),
+                           annotation_text=f"HIGH {high_threshold:.2f}",
+                           annotation_font_color=_ROSE)
+        fig_hist.add_vline(x=outreach_threshold, line=dict(color=_AMBER, dash="dash", width=2),
+                           annotation_text=f"MID {outreach_threshold:.2f}",
+                           annotation_font_color=_AMBER)
+        fig_hist.update_layout(**PLOTLY_LAYOUT, title="Score Separation",
+                               barmode="overlay",
+                               transition={"duration": 700, "easing": "elastic-out"},
+                               xaxis_title="Predicted Purchase Probability",
+                               yaxis_title="Density")
+        st.plotly_chart(fig_hist, use_container_width=True)
 
     st.markdown("### Holdout Decision Policy")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("HIGH precision", f"{holdout_summary.get('precision', 0.0) * 100:.1f}%")
-    c2.metric("HIGH recall", f"{holdout_summary.get('recall', 0.0) * 100:.1f}%")
-    c3.metric("Outreach precision", f"{outreach_summary.get('precision', 0.0) * 100:.1f}%")
-    c4.metric("Outreach recall", f"{outreach_summary.get('recall', 0.0) * 100:.1f}%")
+    with c1:
+        st.markdown(premium_metric_card("HIGH precision", f"{holdout_summary.get('precision', 0.0) * 100:.1f}%", "🎯", "#2dd4bf", "#3b82f6"), unsafe_allow_html=True)
+    with c2:
+        st.markdown(premium_metric_card("HIGH recall", f"{holdout_summary.get('recall', 0.0) * 100:.1f}%", "🔁", "#8b5cf6", "#d946ef"), unsafe_allow_html=True)
+    with c3:
+        st.markdown(premium_metric_card("Outreach precision", f"{outreach_summary.get('precision', 0.0) * 100:.1f}%", "🎯", "#f43f5e", "#f97316"), unsafe_allow_html=True)
+    with c4:
+        st.markdown(premium_metric_card("Outreach recall", f"{outreach_summary.get('recall', 0.0) * 100:.1f}%", "🔁", "#14b8a6", "#10b981"), unsafe_allow_html=True)
 
 elif page == "Model Performance":
-    st.title("Model Performance")
+    st.markdown("<h1>Model Performance Metrics</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem; margin-top:-10px;'>Detailed evaluation curves and calibration data.</p><br>", unsafe_allow_html=True)
 
     if not model_loaded:
         st.stop()
@@ -341,103 +718,128 @@ elif page == "Model Performance":
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
-            fig, ax = plt.subplots(figsize=(5, 4))
-            ax.plot(fpr, tpr, color="darkorange", lw=2, label=f"ROC-AUC = {roc_auc_score(y_holdout_arr, holdout_scores):.4f}")
-            ax.plot([0, 1], [0, 1], "k--", lw=1, label="Random")
-            ax.set_xlabel("False positive rate")
-            ax.set_ylabel("True positive rate")
-            ax.set_title("ROC curve")
-            ax.legend()
-            ax.grid(alpha=0.3)
-            st.pyplot(fig)
-            plt.close(fig)
+            roc_auc_val = roc_auc_score(y_holdout_arr, holdout_scores)
+            fig_roc = go.Figure()
+            fig_roc.add_trace(go.Scatter(
+                x=fpr, y=tpr, mode="lines", name=f"ROC-AUC = {roc_auc_val:.4f}",
+                line=dict(color=_CYAN, width=2.5),
+                fill="tozeroy", fillcolor="rgba(34,211,238,0.06)",
+                hovertemplate="FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra>Model</extra>",
+            ))
+            fig_roc.add_trace(go.Scatter(
+                x=[0, 1], y=[0, 1], mode="lines", name="Random",
+                line=dict(color=_GRID_C, dash="dash", width=1),
+                hoverinfo="skip",
+            ))
+            fig_roc.update_layout(**PLOTLY_LAYOUT, title="ROC Curve",
+                                  xaxis_title="False Positive Rate",
+                                  yaxis_title="True Positive Rate",
+                                  transition={"duration": 900, "easing": "cubic-in-out"})
+            st.plotly_chart(fig_roc, use_container_width=True)
 
         with col2:
-            fig, ax = plt.subplots(figsize=(5, 4))
-            ax.plot(
-                recall_arr,
-                precision_arr,
-                color="purple",
-                lw=2,
-                label=f"Average precision = {average_precision_score(y_holdout_arr, holdout_scores):.4f}",
-            )
-            ax.set_xlabel("Recall")
-            ax.set_ylabel("Precision")
-            ax.set_title("Precision-recall curve")
-            ax.legend()
-            ax.grid(alpha=0.3)
-            st.pyplot(fig)
-            plt.close(fig)
+            ap_val = average_precision_score(y_holdout_arr, holdout_scores)
+            fig_pr = go.Figure()
+            fig_pr.add_trace(go.Scatter(
+                x=recall_arr, y=precision_arr, mode="lines",
+                name=f"Avg Precision = {ap_val:.4f}",
+                line=dict(color=_PURPLE, width=2.5),
+                fill="tozeroy", fillcolor="rgba(167,139,250,0.06)",
+                hovertemplate="Recall: %{x:.3f}<br>Precision: %{y:.3f}<extra>Model</extra>",
+            ))
+            fig_pr.update_layout(**PLOTLY_LAYOUT, title="Precision-Recall Curve",
+                                 xaxis_title="Recall", yaxis_title="Precision",
+                                 transition={"duration": 900, "easing": "cubic-in-out"})
+            st.plotly_chart(fig_pr, use_container_width=True)
 
     with tab2:
         col1, col2 = st.columns(2)
         with col1:
-            fig, ax = plt.subplots(figsize=(5, 4))
-            ax.plot(prob_pred, prob_true, marker="o", linewidth=2, label="Model")
-            ax.plot([0, 1], [0, 1], "k--", linewidth=1, label="Perfect calibration")
-            ax.set_xlabel("Mean predicted probability")
-            ax.set_ylabel("Observed conversion rate")
-            ax.set_title("Calibration curve")
-            ax.legend()
-            ax.grid(alpha=0.3)
-            st.pyplot(fig)
-            plt.close(fig)
+            fig_cal = go.Figure()
+            fig_cal.add_trace(go.Scatter(
+                x=prob_pred, y=prob_true, mode="lines+markers", name="Model",
+                line=dict(color=_GREEN, width=2.5),
+                marker=dict(color=_BG, size=8, line=dict(color=_GREEN, width=2)),
+                hovertemplate="Predicted: %{x:.2f}<br>Actual rate: %{y:.2f}<extra>Calibration</extra>",
+            ))
+            fig_cal.add_trace(go.Scatter(
+                x=[0, 1], y=[0, 1], mode="lines", name="Perfect calibration",
+                line=dict(color=_GRID_C, dash="dash", width=1.5), hoverinfo="skip",
+            ))
+            fig_cal.update_layout(**PLOTLY_LAYOUT, title="Calibration Curve",
+                                  xaxis_title="Mean Predicted Probability",
+                                  yaxis_title="Observed Conversion Rate",
+                                  transition={"duration": 800, "easing": "back-out"})
+            st.plotly_chart(fig_cal, use_container_width=True)
 
         with col2:
-            fig, ax = plt.subplots(figsize=(5, 4))
-            sns.histplot(holdout_scores, bins=30, kde=False, ax=ax, color="teal")
-            ax.axvline(high_threshold, color="red", linestyle="--", label=f"HIGH ({high_threshold:.2f})")
-            ax.axvline(
-                outreach_threshold,
-                color="orange",
-                linestyle="--",
-                label=f"Outreach ({outreach_threshold:.2f})",
-            )
-            ax.set_xlabel("Predicted purchase probability")
-            ax.set_title("Holdout score distribution")
-            ax.legend()
-            st.pyplot(fig)
-            plt.close(fig)
+            fig_dist = go.Figure()
+            fig_dist.add_trace(go.Histogram(
+                x=holdout_scores, nbinsx=30, name="Score distribution",
+                marker_color=_PURPLE, opacity=0.8,
+                hovertemplate="Prob: %{x:.2f}<br>Count: %{y}<extra></extra>",
+            ))
+            fig_dist.add_vline(x=high_threshold, line=dict(color=_ROSE, dash="dash", width=2.5),
+                               annotation_text=f"HIGH {high_threshold:.2f}",
+                               annotation_font_color=_ROSE)
+            fig_dist.add_vline(x=outreach_threshold, line=dict(color=_AMBER, dash="dash", width=2.5),
+                               annotation_text=f"MID {outreach_threshold:.2f}",
+                               annotation_font_color=_AMBER)
+            fig_dist.update_layout(**PLOTLY_LAYOUT, title="Holdout Score Distribution",
+                                   xaxis_title="Predicted Purchase Probability",
+                                   transition={"duration": 700, "easing": "elastic-out"})
+            st.plotly_chart(fig_dist, use_container_width=True)
 
         m1, m2, m3 = st.columns(3)
-        m1.metric("ROC-AUC", f"{roc_auc_score(y_holdout_arr, holdout_scores):.4f}")
-        m2.metric("Average Precision", f"{average_precision_score(y_holdout_arr, holdout_scores):.4f}")
-        m3.metric("Top 20% Capture", f"{config.get('top20_capture', 0.0) * 100:.1f}%")
+        with m1:
+            st.markdown(premium_metric_card("ROC-AUC", f"{roc_auc_score(y_holdout_arr, holdout_scores):.4f}", "📊", "#6366f1", "#a855f7"), unsafe_allow_html=True)
+        with m2:
+            st.markdown(premium_metric_card("Average Precision", f"{average_precision_score(y_holdout_arr, holdout_scores):.4f}", "🎯", "#ef4444", "#f97316"), unsafe_allow_html=True)
+        with m3:
+            st.markdown(premium_metric_card("Top 20% Capture", f"{config.get('top20_capture', 0.0) * 100:.1f}%", "📈", "#10b981", "#3b82f6"), unsafe_allow_html=True)
 
     with tab3:
-        fig, ax = plt.subplots(figsize=(5, 4))
-        sns.heatmap(
-            cm,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            ax=ax,
-            xticklabels=["No purchase", "Purchase"],
-            yticklabels=["No purchase", "Purchase"],
-        )
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("Actual")
-        ax.set_title("HIGH-threshold confusion matrix")
-        st.pyplot(fig)
-        plt.close(fig)
+        labels = ["No purchase", "Purchase"]
+        z_text = [[str(cm[r][c]) for c in range(2)] for r in range(2)]
+        fig_cm = go.Figure(go.Heatmap(
+            z=cm,
+            x=labels, y=labels,
+            colorscale=[[0, _PANEL], [1, _PURPLE]],
+            text=z_text, texttemplate="<b>%{text}</b>",
+            textfont=dict(size=22, color="white"),
+            hovertemplate="Actual: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>",
+            showscale=False,
+        ))
+        fig_cm.update_layout(**PLOTLY_LAYOUT, title="HIGH-Threshold Confusion Matrix",
+                             xaxis_title="Predicted", yaxis_title="Actual",
+                             transition={"duration": 600, "easing": "cubic-in-out"})
+        st.plotly_chart(fig_cm, use_container_width=True)
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("True positives", int(cm[1][1]))
-        c2.metric("False positives", int(cm[0][1]))
-        c3.metric("False negatives", int(cm[1][0]))
-        c4.metric("True negatives", int(cm[0][0]))
+        with c1:
+            st.markdown(premium_metric_card("True positives", int(cm[1][1]), "✅", "#10b981", "#34d399"), unsafe_allow_html=True)
+        with c2:
+            st.markdown(premium_metric_card("False positives", int(cm[0][1]), "⚠️", "#f43f5e", "#fb7185"), unsafe_allow_html=True)
+        with c3:
+            st.markdown(premium_metric_card("False negatives", int(cm[1][0]), "❌", "#8b5cf6", "#c084fc"), unsafe_allow_html=True)
+        with c4:
+            st.markdown(premium_metric_card("True negatives", int(cm[0][0]), "☑️", "#3b82f6", "#60a5fa"), unsafe_allow_html=True)
 
     with tab4:
         feature_names = config.get("feature_names", preprocessor.get_feature_names_out())
         feature_importance = pd.Series(model.feature_importances_, index=feature_names)
         top15 = feature_importance.nlargest(15).sort_values()
-        fig, ax = plt.subplots(figsize=(8, 6))
-        top15.plot(kind="barh", color="teal", ax=ax)
-        ax.set_title("Top feature drivers")
-        ax.set_xlabel("Relative importance")
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close(fig)
+        colors_feat = px.colors.sample_colorscale("Plasma", [i / len(top15) for i in range(len(top15))])
+        fig_fi = go.Figure(go.Bar(
+            x=top15.values,
+            y=top15.index,
+            orientation="h",
+            marker=dict(color=colors_feat, line=dict(width=0)),
+            hovertemplate="<b>%{y}</b><br>Importance: %{x:.4f}<extra></extra>",
+        ))
+        fig_fi.update_layout(**PLOTLY_LAYOUT, title="Top Feature Drivers",
+                             xaxis_title="Relative Importance")
+        st.plotly_chart(fig_fi, use_container_width=True)
 
 elif page == "Evaluation Report":
     st.title("Evaluation Report")
@@ -500,11 +902,6 @@ elif page == "Evaluation Report":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close(fig)
-
-        st.success(
-            f"Top 20% of students capture {config.get('top20_capture', 0.0) * 100:.1f}% "
-            f"of all buyers on the holdout set."
-        )
 
     with tab2:
         st.subheader("Holdout Predictions")
@@ -595,7 +992,8 @@ elif page == "Evaluation Report":
         )
 
 elif page == "Daily Sales Sheet":
-    st.title("Daily Sales Priority Sheet")
+    st.markdown("<h1>Daily Sales Priority Sheet</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem; margin-top:-10px;'>Filter and download optimized outreach pipelines.</p><br>", unsafe_allow_html=True)
 
     if not model_loaded:
         st.stop()
@@ -650,9 +1048,12 @@ elif page == "Daily Sales Sheet":
 
     st.markdown(f"### Showing {len(filtered):,} students")
     metric_a, metric_b, metric_c = st.columns(3)
-    metric_a.metric("HIGH", int((filtered["Tier"] == "HIGH").sum()))
-    metric_b.metric("MID", int((filtered["Tier"] == "MID").sum()))
-    metric_c.metric("LOW", int((filtered["Tier"] == "LOW").sum()))
+    with metric_a:
+        st.markdown(premium_metric_card("HIGH", int((filtered["Tier"] == "HIGH").sum()), "🔥", "#10b981", "#34d399"), unsafe_allow_html=True)
+    with metric_b:
+        st.markdown(premium_metric_card("MID", int((filtered["Tier"] == "MID").sum()), "⚡", "#f59e0b", "#fbbf24"), unsafe_allow_html=True)
+    with metric_c:
+        st.markdown(premium_metric_card("LOW", int((filtered["Tier"] == "LOW").sum()), "🧊", "#3b82f6", "#60a5fa"), unsafe_allow_html=True)
 
     st.dataframe(filtered.reset_index(drop=True), use_container_width=True, height=450)
 
@@ -665,8 +1066,8 @@ elif page == "Daily Sales Sheet":
     )
 
 elif page == "Student Explorer":
-    st.title("Student Explorer")
-    st.markdown("Inspect an individual student probability and behavior signals.")
+    st.markdown("<h1>Student Explorer</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem; margin-top:-10px;'>Inspect individual student probability and behavior signals.</p><br>", unsafe_allow_html=True)
 
     if not model_loaded:
         st.stop()
@@ -681,10 +1082,14 @@ elif page == "Student Explorer":
         row = df.loc[idx]
 
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Purchase probability", score_label(score))
-        col2.metric("Lead tier", tier)
-        col3.metric("Course interest", row["course_interest"])
-        col4.metric("Already converted", "Yes" if row[TARGET_COLUMN] == 1 else "No")
+        with col1:
+            st.markdown(premium_metric_card("Probability", score_label(score), "🎯", "#2dd4bf", "#3b82f6"), unsafe_allow_html=True)
+        with col2:
+            st.markdown(premium_metric_card("Lead tier", tier, "🏆", "#f43f5e", "#f97316"), unsafe_allow_html=True)
+        with col3:
+            st.markdown(premium_metric_card("Course", row["course_interest"], "📚", "#8b5cf6", "#c084fc"), unsafe_allow_html=True)
+        with col4:
+            st.markdown(premium_metric_card("Converted", "Yes" if row[TARGET_COLUMN] == 1 else "No", "✅", "#10b981", "#34d399"), unsafe_allow_html=True)
 
         st.subheader("Key behavioral signals")
         signals = {
@@ -701,9 +1106,11 @@ elif page == "Student Explorer":
         left_col, right_col = st.columns(2)
         items = list(signals.items())
         for key, value in items[:4]:
-            left_col.metric(key, value)
+            with left_col:
+                st.markdown(premium_metric_card(key, value, "🔮", "#6366f1", "#a855f7"), unsafe_allow_html=True)
         for key, value in items[4:]:
-            right_col.metric(key, value)
+            with right_col:
+                st.markdown(premium_metric_card(key, value, "✨", "#14b8a6", "#2dd4bf"), unsafe_allow_html=True)
 
         st.subheader("Top engagement signal")
         st.info(get_top_signal(row))
@@ -737,8 +1144,8 @@ elif page == "Student Explorer":
             st.info("Install shap to see feature-level explanations.")
 
 elif page == "New Data Upload":
-    st.title("Score New Students")
-    st.markdown("Upload a CSV in the training schema to score new students.")
+    st.markdown("<h1>Score New Students</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem; margin-top:-10px;'>Upload a CSV in the training schema to score new students.</p><br>", unsafe_allow_html=True)
 
     if not model_loaded:
         st.stop()
@@ -798,9 +1205,12 @@ elif page == "New Data Upload":
 
                     st.subheader("Scored results")
                     col1, col2, col3 = st.columns(3)
-                    col1.metric("HIGH", int((scored_results["Tier"] == "HIGH").sum()))
-                    col2.metric("MID", int((scored_results["Tier"] == "MID").sum()))
-                    col3.metric("LOW", int((scored_results["Tier"] == "LOW").sum()))
+                    with col1:
+                        st.markdown(premium_metric_card("HIGH", int((scored_results["Tier"] == "HIGH").sum()), "🔥", "#10b981", "#34d399"), unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(premium_metric_card("MID", int((scored_results["Tier"] == "MID").sum()), "⚡", "#f59e0b", "#fbbf24"), unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(premium_metric_card("LOW", int((scored_results["Tier"] == "LOW").sum()), "🧊", "#3b82f6", "#60a5fa"), unsafe_allow_html=True)
 
                     st.dataframe(scored_results, use_container_width=True)
 
@@ -818,3 +1228,333 @@ elif page == "New Data Upload":
                     )
                 except Exception as exc:
                     st.error(f"Error scoring uploaded data: {exc}")
+
+elif page == "Live Predictor":
+    st.markdown("<h1>⚡ Live Student Predictor</h1>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if not model_loaded:
+        st.stop()
+
+    st.markdown("""
+    <div style="background: rgba(99,102,241,0.1); border: 1px solid #6366f1; border-radius: 14px; padding: 16px 20px; margin-bottom: 24px;">
+        <p style="margin:0; color:#a5b4fc; font-size:14px; font-weight:600;">
+            🎯 Fill in the student's behavioral signals below. The model will instantly predict the probability of purchasing a paid course.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("predictor_form"):
+
+        # --- Section 1: Student Profile ---
+        st.markdown("### 👤 Student Profile")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            course_interest = st.selectbox("Course Interest", ["GATE", "Placement", "GovtJobs", "NET", "Other"])
+        with c2:
+            student_stage = st.selectbox("Student Stage", ["Awareness", "Consideration", "Decision", "Cold Lead"])
+        with c3:
+            acquisition_channel = st.selectbox("Acquisition Channel", ["Referral", "YouTube", "Self Login"])
+
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            registration_days_ago = st.number_input("Days Since Registration", 0, 3000, 90)
+        with c5:
+            profile_completion_pct = st.slider("Profile Completion (%)", 0, 100, 60)
+        with c6:
+            targets_count = st.number_input("Targets Count", 0, 10, 1)
+
+        st.markdown("---")
+
+        # --- Section 2: Platform Engagement ---
+        st.markdown("### 📊 Platform Engagement")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            login_frequency_14d = st.number_input("Logins (last 14 days)", 0, 28, 5)
+        with c2:
+            total_platform_minutes = st.number_input("Total Platform Minutes", 0, 50000, 600)
+        with c3:
+            active_days_30d = st.number_input("Active Days (30d)", 0, 30, 8)
+        with c4:
+            current_streak_days = st.number_input("Current Streak (days)", 0, 365, 3)
+
+        c5, c6, c7, c8 = st.columns(4)
+        with c5:
+            session_depth = st.number_input("Session Depth", 0, 500, 20)
+        with c6:
+            last_login_days_ago = st.number_input("Days Since Last Login", 0, 365, 2)
+        with c7:
+            free_platform_lectures_watched = st.number_input("Free Lectures Watched", 0, 1000, 15)
+        with c8:
+            onboarding_video_watched = st.selectbox("Onboarding Video Watched", [0, 1])
+
+        st.markdown("---")
+
+        # --- Section 3: AI Mentor ---
+        st.markdown("### 🤖 AI Mentor Activity")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            ai_mentor_total_messages = st.number_input("AI Mentor Messages", 0, 2000, 10)
+        with c2:
+            ai_mentor_sessions = st.number_input("AI Mentor Sessions", 0, 500, 3)
+        with c3:
+            ai_mentor_last_used_days_ago = st.number_input("AI Mentor Last Used (days ago)", 0, 999, 5)
+        with c4:
+            ai_mentor_topic = st.selectbox("AI Mentor Topic", ["none", "GATE", "Maths", "Coding", "Resume", "Interview", "Other"])
+
+        c5, c6 = st.columns(2)
+        with c5:
+            ai_mentor_daily_limit_hit = st.selectbox("Hit Daily Limit?", [0, 1])
+        with c6:
+            ai_mentor_limit_hit_days = st.number_input("Limit Hit Days", 0, 100, 0)
+
+        st.markdown("---")
+
+        # --- Section 4: Purchase Intent ---
+        st.markdown("### 🛒 Purchase Intent Signals")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            pricing_page_visits = st.number_input("Pricing Page Visits", 0, 100, 2)
+        with c2:
+            cart_items_count = st.number_input("Cart Items Count", 0, 20, 0)
+        with c3:
+            coupon_code_applied = st.selectbox("Coupon Applied?", [0, 1])
+        with c4:
+            wishlist_count = st.number_input("Wishlist Count", 0, 50, 0)
+
+        c5, c6, c7 = st.columns(3)
+        with c5:
+            demo_class_attended = st.selectbox("Demo Class Attended?", [0, 1])
+        with c6:
+            rank_predictor_used = st.selectbox("Rank Predictor Used?", [0, 1])
+        with c7:
+            rank_predictor_course_clicked = st.selectbox("Course Clicked via Rank Predictor?", [0, 1])
+
+        st.markdown("---")
+
+        # --- Section 5: Community & Social ---
+        st.markdown("### 👥 Community & Social")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            community_posts_count = st.number_input("Community Posts", 0, 500, 2)
+        with c2:
+            community_comments_count = st.number_input("Community Comments", 0, 1000, 5)
+        with c3:
+            community_saved_posts = st.number_input("Saved Posts", 0, 500, 3)
+        with c4:
+            communities_joined_count = st.number_input("Communities Joined", 0, 50, 1)
+
+        st.markdown("---")
+
+        # --- Section 6: Tests & Academic ---
+        st.markdown("### 📝 Tests & Academic Performance")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            free_mock_test_count = st.number_input("Mock Tests Taken", 0, 200, 3)
+        with c2:
+            free_mock_test_avg_score = st.slider("Mock Test Avg Score (%)", 0, 100, 50)
+        with c3:
+            pyq_attempted_count = st.number_input("PYQs Attempted", 0, 5000, 50)
+
+        c4, c5 = st.columns(2)
+        with c4:
+            pyq_accuracy_pct = st.slider("PYQ Accuracy (%)", 0, 100, 55)
+        with c5:
+            gate_exam_urgency = st.selectbox("GATE Exam Urgency", ["low", "medium", "high"])
+
+        st.markdown("---")
+
+        # --- Section 7: Counsellor & Outreach ---
+        st.markdown("### 📞 Counsellor & Outreach")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            counsellor_call_received = st.selectbox("Call Received?", [0, 1])
+        with c2:
+            counsellor_call_picked_up = st.selectbox("Call Picked Up?", [0, 1])
+        with c3:
+            counsellor_call_duration_mins = st.number_input("Call Duration (mins)", 0, 60, 0)
+        with c4:
+            call_duration_bucket = st.selectbox("Call Duration Bucket", ["none", "short", "medium", "long"])
+
+        c5, c6 = st.columns(2)
+        with c5:
+            whatsapp_outreach_received = st.selectbox("WhatsApp Outreach?", [0, 1])
+        with c6:
+            whatsapp_replied = st.selectbox("WhatsApp Replied?", [0, 1])
+
+        st.markdown("---")
+
+        # --- Section 8: Urgency & Timing ---
+        st.markdown("### ⏰ Urgency & Timing")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            urgency_weight = st.slider("Urgency Weight (0–10)", 0.0, 10.0, 1.0, step=0.1)
+        with c2:
+            course_urgency_score = st.slider("Course Urgency Score (0–1)", 0.0, 1.0, 0.3, step=0.01)
+        with c3:
+            days_to_next_exam = st.number_input("Days to Next Exam", 0, 730, 90)
+        with c4:
+            is_peak_placement_season = st.selectbox("Peak Placement Season?", [0, 1])
+
+        c5, c6 = st.columns(2)
+        with c5:
+            post_result_window = st.number_input("Post Result Window (days)", 0, 180, 0)
+        with c6:
+            active_month = st.number_input("Active Month (1–12)", 1, 12, 6)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        submitted = st.form_submit_button("🚀 Predict Purchase Probability", use_container_width=True)
+
+    if submitted:
+        # Build raw input row matching the expected schema
+        input_data = {
+            "student_id": ["PREVIEW_001"],
+            "acquisition_channel": [acquisition_channel],
+            "course_interest": [course_interest],
+            "student_stage": [student_stage],
+            "registration_days_ago": [registration_days_ago],
+            "targets_count": [targets_count],
+            "target_gate": [1 if course_interest == "GATE" else 0],
+            "target_placement": [1 if course_interest == "Placement" else 0],
+            "target_govt_jobs": [1 if course_interest == "GovtJobs" else 0],
+            "login_frequency_14d": [login_frequency_14d],
+            "total_platform_minutes": [total_platform_minutes],
+            "session_depth": [session_depth],
+            "last_login_days_ago": [last_login_days_ago],
+            "most_active_time_window": ["evening"],
+            "current_streak_days": [current_streak_days],
+            "active_days_30d": [active_days_30d],
+            "beta_mode_switched": [0],
+            "free_platform_lectures_watched": [free_platform_lectures_watched],
+            "pyq_attempted_count": [pyq_attempted_count],
+            "pyq_accuracy_pct": [pyq_accuracy_pct],
+            "free_mock_test_count": [free_mock_test_count],
+            "free_mock_test_avg_score": [free_mock_test_avg_score],
+            "onboarding_video_watched": [onboarding_video_watched],
+            "ai_mentor_sessions": [ai_mentor_sessions],
+            "ai_mentor_total_messages": [ai_mentor_total_messages],
+            "ai_mentor_last_used_days_ago": [ai_mentor_last_used_days_ago],
+            "ai_mentor_daily_limit_hit": [ai_mentor_daily_limit_hit],
+            "ai_mentor_limit_hit_days": [ai_mentor_limit_hit_days],
+            "ai_mentor_image_uploaded": [0],
+            "ai_mentor_topic": [ai_mentor_topic],
+            "rank_predictor_used": [rank_predictor_used],
+            "rank_predictor_coupon_copied": [0],
+            "rank_predictor_course_clicked": [rank_predictor_course_clicked],
+            "gate_exam_urgency": [gate_exam_urgency],
+            "communities_joined_count": [communities_joined_count],
+            "community_posts_count": [community_posts_count],
+            "community_comments_count": [community_comments_count],
+            "community_saved_posts": [community_saved_posts],
+            "community_image_posted": [0],
+            "chat_initiated_count": [0],
+            "study_group_joined": [0],
+            "study_group_created": [0],
+            "followers_count": [0],
+            "following_count": [0],
+            "pricing_page_visits": [pricing_page_visits],
+            "demo_class_attended": [demo_class_attended],
+            "cart_items_count": [cart_items_count],
+            "wishlist_count": [wishlist_count],
+            "coupon_code_applied": [coupon_code_applied],
+            "profile_completion_pct": [profile_completion_pct],
+            "has_profile_picture": [1 if profile_completion_pct > 40 else 0],
+            "has_education_filled": [1 if profile_completion_pct > 60 else 0],
+            "has_career_goals": [1 if profile_completion_pct > 70 else 0],
+            "resume_uploaded": [0],
+            "standard_certificates": [0],
+            "job_notifications_enabled": [0],
+            "job_alerts_clicked_count": [0],
+            "job_applications_count": [0],
+            "resume_review_requested": [0],
+            "resume_review_completed": [0],
+            "mock_interview_requested": [0],
+            "mock_interview_completed": [0],
+            "question_reports_count": [0],
+            "feedback_submitted": [0],
+            "platform_rating": [0],
+            "referral_program_visited": [0],
+            "successful_referrals": [0],
+            "active_month": [active_month],
+            "course_urgency_score": [course_urgency_score],
+            "days_to_next_exam": [days_to_next_exam],
+            "post_result_window": [post_result_window],
+            "is_peak_placement_season": [is_peak_placement_season],
+            "whatsapp_outreach_received": [whatsapp_outreach_received],
+            "whatsapp_replied": [whatsapp_replied],
+            "counsellor_call_received": [counsellor_call_received],
+            "counsellor_call_picked_up": [counsellor_call_picked_up],
+            "counsellor_call_duration_mins": [counsellor_call_duration_mins],
+            "call_duration_bucket": [call_duration_bucket],
+            "purchased_paid_course": [0],
+            "daily_avg_minutes": [total_platform_minutes / max(active_days_30d, 1)],
+            "engagement_intensity": [total_platform_minutes * login_frequency_14d / 14],
+            "intent_score": [pricing_page_visits * 10 + cart_items_count * 20],
+            "is_professional": [0],
+            "pro_intent_interaction": [0],
+            "effective_call_minutes": [counsellor_call_duration_mins if counsellor_call_picked_up else 0],
+            "urgency_weight": [urgency_weight],
+        }
+
+        try:
+            with st.spinner("🔮 Model is computing prediction..."):
+                input_df = pd.DataFrame(input_data)
+                engineered_input, score_arr = score_rows(input_df, model, preprocessor, calibrator, config)
+                predicted_score = float(score_arr[0])
+                tier = get_tier(predicted_score, high_threshold, outreach_threshold)
+                top_signal = get_top_signal(engineered_input.iloc[0])
+
+            pct = predicted_score * 100
+
+            if tier == "HIGH":
+                tier_color = "#10b981"
+                tier_glow = "rgba(16, 185, 129, 0.35)"
+                tier_emoji = "🔥"
+                tier_advice = "Immediate priority call — high buying intent confirmed."
+                bar_color = "#10b981, #34d399"
+            elif tier == "MID":
+                tier_color = "#f59e0b"
+                tier_glow = "rgba(245, 158, 11, 0.35)"
+                tier_emoji = "⚡"
+                tier_advice = "Outreach ready — warm lead, schedule a follow-up call."
+                bar_color = "#f59e0b, #fbbf24"
+            else:
+                tier_color = "#3b82f6"
+                tier_glow = "rgba(59, 130, 246, 0.25)"
+                tier_emoji = "🧊"
+                tier_advice = "Nurture via email drip. Not yet ready for direct sales."
+                bar_color = "#3b82f6, #60a5fa"
+
+            st.markdown(f"""
+            <div style="background: rgba(15,23,42,0.9); border: 1px solid {tier_color}; border-radius: 20px; padding: 32px; margin-top: 24px;
+                        box-shadow: 0 0 40px {tier_glow};">
+                <div style="text-align:center; margin-bottom: 24px;">
+                    <div style="font-size: 52px; margin-bottom: 8px;">{tier_emoji}</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #64748b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;">Purchase Probability</div>
+                    <div style="font-size: 80px; font-weight: 900; color: {tier_color}; text-shadow: 0 0 30px {tier_glow}, 0 0 60px {tier_glow}; line-height: 1; -webkit-text-fill-color: {tier_color};">
+                        {pct:.1f}%
+                    </div>
+                    <div style="margin: 16px auto; background: rgba(30,41,59,0.8); border-radius: 50px; height: 12px; width: 80%; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, {bar_color}); height: 100%; width: {pct:.1f}%; border-radius: 50px; box-shadow: 0 0 10px {tier_glow};"></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                    <div style="background: rgba(30,41,59,0.7); border-radius: 12px; padding: 16px 24px; text-align:center; border: 1px solid #1e293b; flex:1; min-width: 140px;">
+                        <div style="font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">Lead Tier</div>
+                        <div style="font-size: 24px; font-weight: 900; color: {tier_color};">{tier_emoji} {tier}</div>
+                    </div>
+                    <div style="background: rgba(30,41,59,0.7); border-radius: 12px; padding: 16px 24px; text-align:center; border: 1px solid #1e293b; flex: 2; min-width: 200px;">
+                        <div style="font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">Recommended Action</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #e2e8f0;">{tier_advice}</div>
+                    </div>
+                    <div style="background: rgba(30,41,59,0.7); border-radius: 12px; padding: 16px 24px; text-align:center; border: 1px solid #1e293b; flex: 2; min-width: 200px;">
+                        <div style="font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">Top Engagement Signal</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #a5b4fc;">{top_signal}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        except Exception as exc:
+            st.error(f"Prediction error: {exc}")
